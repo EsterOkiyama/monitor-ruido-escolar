@@ -1,7 +1,7 @@
 WIFI_SSID = "CONFIGURE_AQUI"
 WIFI_PWD = "CONFIGURE_AQUI"
 
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhXxsOs8wRn5bmUepUlADsNuWAHQZbUL8CQrvnLUb1_UznVqrFWmdpofFwxAM7eb1y/exec"
+SHEETS_URL = "CONFIGURAR_URL_SHEETS"
 ESCOLA = "EE UNIVESP"
 
 LIMITE_DB = 70
