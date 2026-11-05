@@ -23,15 +23,15 @@ Status	Faixa✅ Bom	Menor que 55 dB
 ⚠️ Atenção	Entre 55 e 64 dB
 🚨 Alerta	Maior ou igual a 65 dB
 Funcionalidades Validadas
-✅ Wi‑Fi,
-✅ OLED,
-✅ Matriz de LEDs,
-✅ Seleção de ambiente,
-✅ Registro de ruído,
-✅ Armazenamento local,
-✅ Exportação CSV,
-✅ Google Sheets,
-✅ Funcionamento com bateria,
+✅ Wi‑Fi;
+✅ OLED;
+✅ Matriz de LEDs;
+✅ Seleção de ambiente;
+✅ Registro de ruído;
+✅ Armazenamento local;
+✅ Exportação CSV;
+✅ Google Sheets;
+✅ Funcionamento com bateria;
 Tecnologias Utilizadas
 MicroPython
 ESP32
@@ -42,12 +42,12 @@ OLED SSD1306
 Estrutura do Projeto
 Plain Text
 /,
-├── main.py,
-├── oled.py,
-├── joystick.py,
-├── ruido.txt,
-├── medicoes.csv,
-└── README.md,
+├── main.py
+├── oled.py
+├── joystick.py
+├── ruido.txt
+├── medicoes.csv
+└── README.md
 Objetivo
 
 Avaliar os níveis de ruído em diferentes ambientes escolares e fornecer dados para análise, auxiliando na identificação de locais com maior impacto acústico no processo de ensino e aprendizagem.
