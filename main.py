@@ -21,6 +21,9 @@ from config import (
 
 # ========= HARDWARE =========
 mic = ADC(28)
+
+joy_x = ADC(27)   # VRx
+joy_y = ADC(26)   # VRy
 # ========= MÉDIA MÓVEL =========
 
 janela_media = []
@@ -34,6 +37,28 @@ def media_movel(valor):
         janela_media.pop(0)
 
     return sum(janela_media) / len(janela_media)
+
+
+def ler_joystick():
+
+    x = joy_x.read_u16()
+    y = joy_y.read_u16()
+
+    if y > 55000:
+        return "CIMA"
+
+    if y < 5000:
+        return "BAIXO"
+
+    if x < 5000:
+        return "ESQUERDA"
+
+    if x > 55000:
+        return "DIREITA"
+
+    return None
+
+    
 rtc = RTC()
 i2c_oled = SoftI2C(scl=15, sda=14)
 try:
@@ -47,6 +72,20 @@ except Exception as e:
 
 bdlab = BitDogLab()
 
+AMBIENTES = [
+    "Sala",
+    "Corredor",
+    "Patio",
+    "Biblioteca"
+]
+
+indice_ambiente = 0
+
+ambiente_selecionado = AMBIENTES[indice_ambiente]
+
+ambiente_atual = ambiente_selecionado
+
+modo_selecao = False
 # ========= WIFI =========
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
@@ -104,10 +143,13 @@ else:
     ip = "OFFLINE"
 
 print("IP conectado:", ip)
+
 # ========= SERVIDOR WEB =========
-asyncio.create_task(
+if wlan.isconnected():
+
+   asyncio.create_task(
     web_server(ip)
-)
+   )
 # ========= FUNÇÃO DE MEDIÇÃO =========
 def medir_db():
 
@@ -135,7 +177,7 @@ def medir_db():
     )
 
     # pequeno ajuste de calibração
-    db -= 5
+    db -= 10
 
     db = max(
         30,
@@ -152,7 +194,6 @@ def medir_db():
     
 
 # ========= DESENHO NO OLED =========
-# ========= DESENHO NO OLED =========
 
 def desenhar_oled(db, status, alert_pct):
 
@@ -160,6 +201,30 @@ def desenhar_oled(db, status, alert_pct):
         return
 
     oled.fill(0)
+    
+    if modo_selecao:
+
+        oled.text(
+            "Selecionar",
+            0,
+            0
+        )
+
+        oled.text(
+            ambiente_selecionado[:12],
+            0,
+            24
+        )
+
+        oled.text(
+            "DIR=OK",
+            0,
+            48
+        )
+
+        oled.show()
+
+        return
 
     t = rtc.datetime()
 
@@ -200,7 +265,7 @@ def desenhar_oled(db, status, alert_pct):
     )
 
     oled.text(
-        f"IP:{ip[:10]}",
+        ambiente_atual[:12],
         0,
         52
     )
@@ -218,14 +283,88 @@ def desenhar_oled(db, status, alert_pct):
         )
 
     oled.show()
-# ========= LOOP PRINCIPAL =========
+
 # ========= LOOP PRINCIPAL =========
 async def loop_principal():
+    
+    global indice_ambiente
+    global ambiente_atual
+    global ambiente_selecionado
+    global modo_selecao
 
     while True:
+        
+        direcao = ler_joystick()
 
+        
+        if direcao == "CIMA":
+            
+            modo_selecao = True
+
+            indice_ambiente -= 1
+
+            if indice_ambiente < 0:
+                indice_ambiente = len(AMBIENTES) - 1
+
+            ambiente_selecionado = AMBIENTES[indice_ambiente]
+
+            print("Ambiente:", ambiente_selecionado)
+
+            await asyncio.sleep(0.3)
+
+        elif direcao == "BAIXO":
+            
+            modo_selecao = True
+
+            indice_ambiente += 1
+
+            if indice_ambiente >= len(AMBIENTES):
+                indice_ambiente = 0
+
+            ambiente_selecionado = AMBIENTES[indice_ambiente]
+
+            print("Ambiente:", ambiente_selecionado)
+
+            await asyncio.sleep(0.3)
+
+        elif direcao == "DIREITA":
+
+            ambiente_atual = ambiente_selecionado
+            
+            bdlab.buzzer_alert(80)
+            
+            modo_selecao = False
+
+            print("CONFIRMADO:",ambiente_atual
+            )
+
+            if oled:
+
+                oled.fill(0)
+
+                oled.text(
+                    "AMBIENTE",
+                    0,
+                    0
+                )
+
+                oled.text(
+                    "CONFIRMADO",
+                    0,
+                    16
+                )
+
+                oled.text(
+                    ambiente_atual[:12],
+                    0,
+                    32
+                )
+
+                oled.show()
+
+            await asyncio.sleep(0.5)
         # RESET via botão
-        if bdlab.botao_pressionado():
+        if bdlab.botao_pressionado():	
 
             resetar_db()
 
@@ -247,16 +386,18 @@ async def loop_principal():
 
         # Medição e histórico
         db = medir_db()
-        status, alert_pct, timestamp = salvar_db(db, rtc, True)
 
+        status, alert_pct, timestamp = salvar_db(
+            db,
+            rtc,
+            ambiente_atual,
+            wlan.isconnected()
+        )
         # OLED
         desenhar_oled(db, status, alert_pct)
 
         # LED/Buzzer
-           # ========= LEDS =========
-
-                     # ========= LEDS =========
-
+        
         if db < LIMITE_BOM:
 
             bdlab.desenhar_icone(
@@ -281,7 +422,7 @@ async def loop_principal():
         # Log REPL
         print(f"[{time.localtime()[2]:02d}/{time.localtime()[1]:02d}] dB:{db:.1f} | Status:{status} | Alert:{alert_pct:.0f}%")
 
-        await asyncio.sleep(1.8)
+        await asyncio.sleep(0.2)
 
 # ========= EXECUTA LOOP =========
 asyncio.run(loop_principal())
