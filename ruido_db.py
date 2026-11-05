@@ -24,7 +24,7 @@ def gerar_timestamp(rtc):
     )
 
 
-def salvar_db(db, rtc, enviar=False):
+def salvar_db(db, rtc, ambiente, enviar=False):
 
     if db >= LIMITE_ALERTA:
         status = "Alerta"
@@ -42,7 +42,7 @@ def salvar_db(db, rtc, enviar=False):
         with open(ARQ_DB, "a") as f:
 
             f.write(
-                f"{timestamp},{db},{status}\n"
+                f"{timestamp},{db},{status},{ambiente}\n"
             )
 
     except:
@@ -77,7 +77,7 @@ def salvar_db(db, rtc, enviar=False):
         with open(ARQ_CSV, "w") as f:
 
             f.write(
-                "timestamp,db,status\n"
+                "timestamp,db,status,ambiente\n"
             )
 
             with open(
