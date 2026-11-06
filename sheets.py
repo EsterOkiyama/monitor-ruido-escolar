@@ -1,90 +1,47 @@
 import urequests
 import ujson
-
 from config import SHEETS_URL, ESCOLA
 
 contador_sheets = 0
 
-def enviar_sheets(
-    db,
-    status,
-    alert_pct,
-    timestamp
-):
-
+def enviar_sheets(db, status, alert_pct, timestamp, ambiente="Sala"):
     global contador_sheets
 
     if not SHEETS_URL:
         return
 
+    r = None
     try:
+        data = f"{timestamp[6:8]}/{timestamp[4:6]}/{timestamp[0:4]}"
+        hora = f"{timestamp[9:11]}:{timestamp[11:13]}:{timestamp[13:15]}"
+        alert_str = f"{alert_pct:.0f}%"
 
-        data = (
-            f"{timestamp[6:8]}/"
-            f"{timestamp[4:6]}/"
-            f"{timestamp[0:4]}"
+        def clean_str(val):
+            return str(val).replace(' ', '%20').replace('ã', 'a').replace('ç', 'c').replace('ê', 'e')
+
+        # URL com todos os parâmetros explicitamente alinhados
+        url = (
+            f"{SHEETS_URL}?data={clean_str(data)}&hora={clean_str(hora)}&db={db}"
+            f"&status={clean_str(status)}&alert_pct={clean_str(alert_str)}&escola={clean_str(ESCOLA)}&ambiente={clean_str(ambiente)}"
         )
 
-        hora = (
-            f"{timestamp[9:11]}:"
-            f"{timestamp[11:13]}:"
-            f"{timestamp[13:15]}"
-        )
+        print("🔹 Enviando dados para o Sheets...")
 
-        payload = {
-            "data": data,
-            "hora": hora,
-            "db": db,
-            "status": status,
-            "alert_pct": f"{alert_pct:.0f}%",
-            "escola": ESCOLA,
-            "ambiente": "Sala de Aula"
-        }
-
-        print(
-            "🔹 Payload enviado:",
-            ujson.dumps(payload)
-        )
-
-        print(
-            "🔹 Enviando para:",
-            SHEETS_URL
-        )
-
-        json_data = ujson.dumps(payload)
-
-        r = urequests.post(
-            SHEETS_URL,
-            data=json_data
-        )
-
-        print("Resposta recebida:")
-        print(r.text)
+        r = urequests.get(url)
+        print("Status HTTP recebido:", r.status_code)
 
         if r.status_code == 200:
-
             contador_sheets += 1
-
-            print(
-                f"☁️ Sheets atualizado #{contador_sheets}"
-            )
-
+            print(f"☁️ Sheets atualizado #{contador_sheets}")
         else:
-
-            print(
-                f"⚠️ Erro HTTP {r.status_code}"
-            )
-
-            print(
-                "❌ Conteúdo de resposta:",
-                r.text
-            )
-
-        r.close()
+            print(f"⚠️ Erro HTTP do Google: {r.status_code}")
 
     except Exception as e:
-
-        print(
-            "❌ Erro ao enviar Sheets:",
-            e
-        )
+        print("❌ Erro ao enviar Sheets:", e)
+        
+    finally:
+        if r is not None:
+            try:
+                r.close()
+            except:
+                pass
