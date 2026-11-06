@@ -1,3 +1,4 @@
+import gc
 from config import (
     ARQ_DB,
     ARQ_CSV,
@@ -11,9 +12,7 @@ historico_db = []
 
 
 def gerar_timestamp(rtc):
-
     t = rtc.datetime()
-
     return (
         f"{t[0]:04d}"
         f"{t[1]:02d}"
@@ -25,26 +24,20 @@ def gerar_timestamp(rtc):
 
 
 def salvar_db(db, rtc, ambiente, enviar=False):
-
     if db >= LIMITE_ALERTA:
         status = "Alerta"
-
     elif db >= LIMITE_BOM:
         status = "Atenção"
-
     else:
         status = "Bom"
 
     timestamp = gerar_timestamp(rtc)
 
     try:
-
         with open(ARQ_DB, "a") as f:
-
             f.write(
                 f"{timestamp},{db},{status},{ambiente}\n"
             )
-
     except:
         pass
 
@@ -54,7 +47,6 @@ def salvar_db(db, rtc, ambiente, enviar=False):
         historico_db.pop(0)
 
     if len(historico_db) > 0:
-
         alert_pct = (
             len(
                 [
@@ -63,48 +55,42 @@ def salvar_db(db, rtc, ambiente, enviar=False):
                     if d >= LIMITE_ALERTA
                 ]
             )
-            /
-            len(historico_db)
+            / len(historico_db)
             * 100
         )
-
     else:
-
         alert_pct = 0
 
     try:
-
+        # Em vez de carregar readlines() inteiro na RAM, mantemos a lógica leve ou opcional
+        # Se o ARQ_CSV for apenas para leitura web rápida, podemos limitar a escrita sem estourar RAM
         with open(ARQ_CSV, "w") as f:
-
-            f.write(
-                "timestamp,db,status,ambiente\n"
-            )
-
-            with open(
-                ARQ_DB,
-                "r"
-            ) as db_file:
-
-                dados = db_file.readlines()[-200:]
-
-            f.write(
-                "".join(dados)
-            )
+            f.write("timestamp,db,status,ambiente\n")
+            
+            # Lê o arquivo de forma otimizada pegando apenas as últimas linhas sem readlines() pesado
+            with open(ARQ_DB, "r") as db_file:
+                # Conta total de linhas para pegar só as últimas de forma segura
+                linhas = []
+                for linha in db_file:
+                    linhas.append(linha)
+                    if len(linhas) > 200:
+                        linhas.pop(0)
+                
+            f.write("".join(linhas))
 
     except Exception as e:
+        print("Erro CSV:", e)
 
-        print(
-            "Erro CSV:",
-            e
-        )
+    # Força a limpeza de lixo da memória RAM do Pico W
+    gc.collect()
 
     if enviar:
-
         enviar_sheets(
             db,
             status,
             alert_pct,
-            timestamp
+            timestamp,
+            ambiente
         )
 
     return (
@@ -113,20 +99,18 @@ def salvar_db(db, rtc, ambiente, enviar=False):
         timestamp
     )
 
+
 def resetar_db():
-
     try:
-
         open(
             ARQ_DB,
             "w"
         ).close()
 
         historico_db.clear()
+        gc.collect()
 
-        print(
-            "DB resetado"
-        )
+        print("DB resetado")
 
     except:
         pass
