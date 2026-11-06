@@ -1,7 +1,7 @@
 WIFI_SSID = "000000000"
 WIFI_PWD = "00000000"
 
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbw-MsWoZxhjSBBM6OzK070QxDbK6LbTpFmsNYl4bzCdoa9hI1Lu_qNznyLiw7Bo5RtQ/exec"
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbzZE_kbTTH-0h973LUvtu61tT65qS-Z_yd35aF-w_XapdEr2L3oSHwRZ-K17cQTnpImig/exec"
 
 ESCOLA = "EE Antônio Marinho de Carvalho Filho"
 
